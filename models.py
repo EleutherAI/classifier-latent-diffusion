@@ -39,3 +39,25 @@ class MnistDiffusion(eqx.Module):
         x = x[0]
         return x
 
+class MnistClassifier(eqx.Module): 
+    layers: list
+    def __init__(self, key, h_dim):
+        keys = jax.random.split(key, 9)
+        # Standard CNN setup: convolutional layer, followed by flattening,
+        # with a small MLP on top.
+        self.layers = [
+            eqx.nn.Conv2d(2, h_dim, kernel_size=1, key=keys[0]),
+            ResBlock(keys[1], h_dim),
+            ResBlock(keys[2], h_dim),
+            ResBlock(keys[3], h_dim),
+            ResBlock(keys[4], h_dim),
+            ResBlock(keys[5], h_dim),
+            ResBlock(keys[6], h_dim),
+            eqx.nn.Conv2d(h_dim, 1, kernel_size=1, key=keys[7])
+            eqx.nn.Linear(28*28, 1, key=keys[8])
+            jax.nn.log_softmax
+        ]
+    def __call__(self, x:
+        for layer in self.layers:
+            x = layer(x)
+        return x
