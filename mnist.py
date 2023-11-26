@@ -8,8 +8,8 @@ def format_mnist(args, conf):
     dataset = load_dataset("mnist")
     train_images = np.array(dataset["train"]["image"])/255
     test_images = np.array(dataset["test"]["image"])
-    train_labels = dataset["train"]["labels"]
-    test_labels = dataset["test"]["labels"]
+    train_labels = np.array(dataset["train"]["label"])
+    test_labels = np.array(dataset["test"]["label"])
 
     output = {
         "train":{
@@ -26,10 +26,10 @@ def format_mnist(args, conf):
         pickle.dump(output,file)
             
 class MNISTDataLoader:
-    def __init__(self, args, conf, mode="train"):
-        with open(args.input, "rb") as file:
-            self.dataset = pikle.load(file)[mode]
-        self.batch_size = batch_size
+    def __init__(self, input_file, batch_size, mode="train"):
+        with open(input_file, "rb") as file:
+            self.dataset = pickle.load(file)[mode]
+        self.batch_size = batch_size 
         self.current_index = 0
 
     def __iter__(self):
@@ -38,11 +38,11 @@ class MNISTDataLoader:
         return self
 
     def __next__(self):
-        if self.current_index >= len(self.dataset):
+        if self.current_index >= len(self.dataset["images"]):
             raise StopIteration
 
-        end_index = min(self.current_index + self.batch_size, len(self.dataset))
-        images = self.dataset["image"][self.current_index:end_index]
+        end_index = min(self.current_index + self.batch_size, len(self.dataset["images"]))
+        images = self.dataset["images"][self.current_index:end_index]
         labels = self.dataset["labels"][self.current_index:end_index]
         self.current_index = end_index
         return images, labels

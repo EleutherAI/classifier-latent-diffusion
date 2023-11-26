@@ -36,20 +36,6 @@ def gaussian_mixture(key, means, covariances, weights, n_samples):
         
     return output, indicies
 
-def make_data(means, variances, weights, pair_n, key):
-    a_key, b_key, pair_key = jax.random.split(key,3)
-    #plt.scatter(data[:,0],data[:,1], c=idx)
-    #plt.show()
-    pair_data, pair_idx = gaussian_mixture(pair_key, means, variances, weights, pair_n)
-
-    data = pair_data
-    idx = pair_idx
-    #plt.hist(data[0][:,0])
-    #plt.show()
-    #plt.hist(data[1][:,0])
-    #plt.show()
-    return data, idx
-
 #Linear SNR Schedule
 def f_neg_gamma(t, min_snr= -10, max_snr = 10):
     #equivalent to log SNR
@@ -93,11 +79,14 @@ def diffusion_loss(model, data, f_neg_gamma,  key):
     return mean_loss
 
 def sample_diffusion(model, f_neg_gamma, key, n_steps, shape, n_samples):
-    #Following https://arxiv.org/abs/2202.00512 eq. #8
-    time_steps = jnp.linspace(0, 1, num=n_steps+1)
-
     init_z = jax.random.normal(key, (n_samples,) + shape)
     z = init_z
+    z = resample_diffusion(z, model, f_neg_gamma, n_steps)
+    return init_z, z
+
+def resample_diffusion(z, model, f_neg_gamma, n_steps):
+    #Following https://arxiv.org/abs/2202.00512 eq. #8
+    time_steps = jnp.linspace(0, 1, num=n_steps+1)
     for i in range(n_steps):
         # t_s < t_t
         t_s, t_t = time_steps[n_steps-i-1], time_steps[n_steps-i]
@@ -112,9 +101,9 @@ def sample_diffusion(model, f_neg_gamma, key, n_steps, shape, n_samples):
         k = jnp.exp((neg_gamma_t-neg_gamma_s)/2)
         z = (alpha_s/alpha_t)*(z + sigma_t*epsilon_hat*(k-1))
 
-    return init_z, z
+    return z
 
-def unsample_diffusion(z, model, f_neg_gamma, key, n_steps, shape, n_samples):
+def unsample_diffusion(z, model, f_neg_gamma, n_steps):
     
     time_steps = jnp.linspace(0, 1, num=n_steps+1)
     for i in list(range(n_steps))[::-1]:
